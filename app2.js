@@ -38,7 +38,7 @@ bot.dialog('askName', [
         builder.Prompts.text(session, 'Bonjour, quel est votre nom?');
     },
     function (session, results){
-        session.conversationData.nomUser = results.response;
+        session.privateConversationData.nomUser = results.response;
         //session.send(`Bonjour ${session.dialogData.nomUser}`);
         session.beginDialog('reservation');
         //session.endDialogWithResult(results);
@@ -50,17 +50,17 @@ bot.dialog('reservation', [
         builder.Prompts.time(session, "Quel jour ?");
     },
     function (session, results) {
-        session.dialogData.reservationDate = builder.EntityRecognizer.resolveTime([results.response]);
+        session.privateConversationData.reservationDate = builder.EntityRecognizer.resolveTime([results.response]);
         builder.Prompts.number(session, "Combien de personne ?");
     },
     function (session, results) {
-        session.dialogData.reservationNb = results.response;
+        session.privateConversationData.reservationNb = results.response;
         builder.Prompts.text(session, "Sous quel nom ?");
     },
     function (session, results) {
-        session.dialogData.reservationName = results.response;
+        session.privateConversationData.reservationName = results.response;
 
-        session.send(`Reservation effectuée ${session.conversationData.nomUser}. <br/>Date: ${session.dialogData.reservationDate} <br/>Nb de personne: ${session.dialogData.reservationNb} <br/>Réservé au nom de : ${session.dialogData.reservationName}`);
+        session.send(`Reservation effectuée ${session.privateConversationData.nomUser}. <br/>Date: ${session.privateConversationData.reservationDate} <br/>Nb de personne: ${session.privateConversationData.reservationNb} <br/>Réservé au nom de : ${session.privateConversationData.reservationName}`);
         session.endDialog();
     }
 ])
