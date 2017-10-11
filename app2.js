@@ -17,14 +17,51 @@ var connector = new builder.ChatConnector({
 // Listen for messages from users 
 server.post('/api/messages', connector.listen());
 
+
 var bot = new builder.UniversalBot(connector, [
 
-    function (session) {
-        session.beginDialog('greetings');
-    },
-
+    function(session){
+        session.send("Bienvenue dans le bot Resa");
+        session.beginDialog('mainMenu');
+    }
 
 ]);
+
+var menuItems = {
+    "greetings" : {
+        item: "greetings"
+    },
+    "reservation": {
+        item: "reservation"
+    }
+};
+
+bot.dialog('mainMenu', [
+    function(session){
+        builder.Prompts.choice(session, "Veuillez faire un choix :", menuItems, {listStyle: 3});
+    },
+    function (session, results) {
+        if (results.response) {
+            session.beginDialog(menuItems[results.response.entity].item);
+        } 
+    }
+])
+.triggerAction({
+    matches: /^main menu$/i,
+    confirmPrompt: "This will cancel your request. Are you sure?"
+})
+.reloadAction(
+    "restartRequest", "Ok let's start over.", {
+        matches: /^start over$/i,
+        confirmPrompt: "This will cancel your request. Are you sure?"
+    }
+)
+.cancelAction(
+    "cancelRequest", "Type 'Main Menu' to continue.", {
+        matches: /^cancel$/i,
+        confirmPrompt: "This will cancel your request. Are you sure?"
+    }
+)
 
 bot.dialog('greetings',[
     function (session) {
@@ -34,14 +71,12 @@ bot.dialog('greetings',[
 
 bot.dialog('askName', [
     function (session) {
-        session.send("Bienvenue dans le bot Resa");
         builder.Prompts.text(session, 'Bonjour, quel est votre nom?');
     },
     function (session, results){
         session.privateConversationData.nomUser = results.response;
-        //session.send(`Bonjour ${session.dialogData.nomUser}`);
-        session.beginDialog('reservation');
-        //session.endDialogWithResult(results);
+        session.send("Bonjour %s <br/> Si vous souhaitez effectuer une nouvelle action écrivez 'Main Menu'.", session.privateConversationData.nomUser);
+        session.endDialog();
     }
 ]);
 
@@ -59,11 +94,41 @@ bot.dialog('reservation', [
     },
     function (session, results) {
         session.privateConversationData.reservationName = results.response;
-
-        session.send(`Reservation effectuée ${session.privateConversationData.nomUser}. <br/>Date: ${session.privateConversationData.reservationDate} <br/>Nb de personne: ${session.privateConversationData.reservationNb} <br/>Réservé au nom de : ${session.privateConversationData.reservationName}`);
+        session.beginDialog('phonePrompt');
+    },
+    function (session, results) {
+        session.send(`Reservation effectuée ${session.privateConversationData.nomUser}. <br/>Date: ${session.privateConversationData.reservationDate} <br/>Nb de personne: ${session.privateConversationData.reservationNb} <br/>Réservé au nom de : ${session.privateConversationData.reservationName } <br/>Numéro de téléphone : ${session.privateConversationData.phoneNumber }`);
         session.endDialog();
     }
-])
+]);
+
+bot.dialog('phonePrompt', [
+    function (session, args) {
+        if (args && args.reprompt) {
+            builder.Prompts.text(session, "Votre numéro doit être au format: '(555) 123-4567' ou '555-123-4567' ou '5551234567'")
+        } else {
+            builder.Prompts.text(session, "Quel est votre numéro ?");
+        }
+    },
+    function (session, results) {
+        var matched = results.response.match(/\d+/g);
+        var number = matched ? matched.join('') : '';
+        if (number.length == 10 || number.length == 11) {
+            session.privateConversationData.phoneNumber = number; // Save the number.
+            session.endDialog();
+        } else {
+            // Repeat the dialog
+            session.replaceDialog('phonePrompt', { reprompt: true });
+        }
+    }
+]);
+
+/*
+bot.dialog('testPrompChoice', [
+    function (session) {
+        builder.Prompts.choice(session, "Which color ?", ["red", "green", "orange"], {listStyle:3});
+    }
+]);*/
 
 
 
